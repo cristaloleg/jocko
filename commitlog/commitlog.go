@@ -138,8 +138,9 @@ func (l *CommitLog) Append(b []byte) (offset int64, err error) {
 
 func (l *CommitLog) Read(p []byte) (n int, err error) {
 	l.mu.Lock()
-	defer l.mu.Unlock()
-	return l.activeSegment().Read(p)
+	n, err = l.activeSegment().Read(p)
+	l.mu.Unlock()
+	return n, err
 }
 
 func (l *CommitLog) NewestOffset() int64 {
@@ -148,8 +149,9 @@ func (l *CommitLog) NewestOffset() int64 {
 
 func (l *CommitLog) OldestOffset() int64 {
 	l.mu.RLock()
-	defer l.mu.RUnlock()
-	return l.segments[0].BaseOffset
+	offset := l.segments[0].BaseOffset
+	l.mu.RUnlock()
+	return offset
 }
 
 func (l *CommitLog) activeSegment() *Segment {
@@ -176,11 +178,11 @@ func (l *CommitLog) Delete() error {
 
 func (l *CommitLog) Truncate(offset int64) error {
 	l.mu.Lock()
-	defer l.mu.Unlock()
 	var segments []*Segment
 	for _, segment := range l.segments {
 		if segment.BaseOffset < offset {
 			if err := segment.Delete(); err != nil {
+				l.mu.Unlock()
 				return err
 			}
 		} else {
@@ -188,13 +190,15 @@ func (l *CommitLog) Truncate(offset int64) error {
 		}
 	}
 	l.segments = segments
+	l.mu.Unlock()
 	return nil
 }
 
 func (l *CommitLog) Segments() []*Segment {
 	l.mu.Lock()
-	defer l.mu.Unlock()
-	return l.segments
+	s := l.segments
+	l.mu.Unlock()
+	return s
 }
 
 func (l *CommitLog) checkSplit() bool {

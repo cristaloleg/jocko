@@ -24,29 +24,29 @@ func NewBrokerLookup() *brokerLookup {
 
 func (b *brokerLookup) AddBroker(broker *metadata.Broker) {
 	b.lock.Lock()
-	defer b.lock.Unlock()
 	b.addressToBroker[raft.ServerAddress(broker.RaftAddr)] = broker
 	b.idToBroker[raft.ServerID(broker.ID.Int32())] = broker
+	b.lock.Unlock()
 }
 
 func (b *brokerLookup) BrokerByAddr(addr raft.ServerAddress) *metadata.Broker {
 	b.lock.RLock()
-	defer b.lock.RUnlock()
 	svr, _ := b.addressToBroker[addr]
+	b.lock.RUnlock()
 	return svr
 }
 
 func (b *brokerLookup) BrokerByID(id raft.ServerID) *metadata.Broker {
 	b.lock.RLock()
-	defer b.lock.RUnlock()
 	svr, _ := b.idToBroker[id]
+	b.lock.RUnlock()
 	return svr
 }
 
 func (b *brokerLookup) BrokerAddr(id raft.ServerID) (raft.ServerAddress, error) {
 	b.lock.RLock()
-	defer b.lock.RUnlock()
 	svr, ok := b.idToBroker[id]
+	b.lock.RUnlock()
 	if !ok {
 		return "", fmt.Errorf("no broker for id %v", id)
 	}
@@ -55,18 +55,18 @@ func (b *brokerLookup) BrokerAddr(id raft.ServerID) (raft.ServerAddress, error) 
 
 func (b *brokerLookup) RemoveBroker(broker *metadata.Broker) {
 	b.lock.Lock()
-	defer b.lock.Unlock()
 	delete(b.addressToBroker, raft.ServerAddress(broker.RaftAddr))
 	delete(b.idToBroker, raft.ServerID(broker.ID.Int32()))
+	b.lock.Unlock()
 }
 
 func (b *brokerLookup) Brokers() []*metadata.Broker {
 	b.lock.RLock()
-	defer b.lock.RUnlock()
-	var ret []*metadata.Broker
+	ret := make([]*metadata.Broker, 0, len(b.addressToBroker))
 	for _, svr := range b.addressToBroker {
 		ret = append(ret, svr)
 	}
+	b.lock.RUnlock()
 	return ret
 }
 

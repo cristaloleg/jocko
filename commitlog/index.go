@@ -135,11 +135,12 @@ func (idx *Index) ReadEntryAtLogOffset(e *Entry, logOffset int64) error {
 
 func (idx *Index) ReadAt(p []byte, offset int64) (n int, err error) {
 	idx.mu.RLock()
-	defer idx.mu.RUnlock()
 	if idx.position < offset+entryWidth {
+		idx.mu.RUnlock()
 		return 0, io.EOF
 	}
 	n = copy(p, idx.mmap[offset:offset+entryWidth])
+	idx.mu.RUnlock()
 	return n, nil
 }
 
@@ -149,19 +150,22 @@ func (idx *Index) Write(p []byte) (n int, err error) {
 
 func (idx *Index) WriteAt(p []byte, offset int64) (n int) {
 	idx.mu.Lock()
-	defer idx.mu.Unlock()
-	return copy(idx.mmap[offset:offset+entryWidth], p)
+	n = copy(idx.mmap[offset:offset+entryWidth], p)
+	idx.mu.Unlock()
+	return n
 }
 
 func (idx *Index) Sync() error {
 	idx.mu.Lock()
-	defer idx.mu.Unlock()
 	if err := idx.file.Sync(); err != nil {
+		idx.mu.Unlock()
 		return errors.Wrap(err, "file sync failed")
 	}
 	if err := idx.mmap.Sync(gommap.MS_SYNC); err != nil {
+		idx.mu.Unlock()
 		return errors.Wrap(err, "mmap sync failed")
 	}
+	idx.mu.Unlock()
 	return nil
 }
 
@@ -181,32 +185,37 @@ func (idx *Index) Name() string {
 
 func (idx *Index) TruncateEntries(number int) error {
 	idx.mu.Lock()
-	defer idx.mu.Unlock()
 	if int64(number*entryWidth) > idx.position {
+		idx.mu.Unlock()
 		return errors.New("bad truncate number")
 	}
 	idx.position = int64(number * entryWidth)
+	idx.mu.Unlock()
 	return nil
 }
 
 func (idx *Index) SanityCheck() error {
 	idx.mu.RLock()
-	defer idx.mu.RUnlock()
 	if idx.position == 0 {
-		return nil
-	} else if idx.position%entryWidth != 0 {
-		return ErrIndexCorrupt
-	} else {
-		//read last entry
-		entry := new(Entry)
-		if err := idx.ReadEntryAtFileOffset(entry, idx.position-entryWidth); err != nil {
-			return err
-		}
-		if entry.Offset < idx.baseOffset {
-			return ErrIndexCorrupt
-		}
+		idx.mu.RUnlock()
 		return nil
 	}
+	if idx.position%entryWidth != 0 {
+		idx.mu.RUnlock()
+		return ErrIndexCorrupt
+	}
+	//read last entry
+	entry := new(Entry)
+	if err := idx.ReadEntryAtFileOffset(entry, idx.position-entryWidth); err != nil {
+		idx.mu.RUnlock()
+		return err
+	}
+	if entry.Offset < idx.baseOffset {
+		idx.mu.RUnlock()
+		return ErrIndexCorrupt
+	}
+	idx.mu.RUnlock()
+	return nil
 }
 
 type IndexScanner struct {

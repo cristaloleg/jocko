@@ -122,34 +122,38 @@ func (s *Segment) SetupIndex(path string) (err error) {
 
 func (s *Segment) IsFull() bool {
 	s.Lock()
-	defer s.Unlock()
-	return s.Position >= s.maxBytes
+	ok := s.Position >= s.maxBytes
+	s.Unlock()
+	return ok
 }
 
 // Write writes a byte slice to the log at the current position.
 // It increments the offset as well as sets the position to the new tail.
 func (s *Segment) Write(p []byte) (n int, err error) {
 	s.Lock()
-	defer s.Unlock()
 	n, err = s.writer.Write(p)
 	if err != nil {
+		s.Unlock()
 		return n, errors.Wrap(err, "log write failed")
 	}
 	s.NextOffset++
 	s.Position += int64(n)
+	s.Unlock()
 	return n, nil
 }
 
 func (s *Segment) Read(p []byte) (n int, err error) {
 	s.Lock()
-	defer s.Unlock()
-	return s.reader.Read(p)
+	n, err = s.reader.Read(p)
+	s.Unlock()
+	return n, err
 }
 
 func (s *Segment) ReadAt(p []byte, off int64) (n int, err error) {
 	s.Lock()
-	defer s.Unlock()
-	return s.log.ReadAt(p, off)
+	n, err = s.log.ReadAt(p, off)
+	s.Unlock()
+	return n, err
 }
 
 func (s *Segment) Close() error {
@@ -163,13 +167,13 @@ func (s *Segment) Close() error {
 
 func (s *Segment) findEntry(offset int64) (e *Entry, err error) {
 	s.Lock()
-	defer s.Unlock()
 	e = &Entry{}
 	n := int(s.Index.bytes / entryWidth)
 	idx := sort.Search(n, func(i int) bool {
 		_ = s.Index.ReadEntryAtFileOffset(e, int64(i*entryWidth))
 		return e.Offset >= offset || e.Offset == 0
 	})
+	s.Unlock()
 	if idx == n {
 		return nil, errors.New("entry not found")
 	}

@@ -87,8 +87,9 @@ func New(logger log.Logger, args ...interface{}) (*FSM, error) {
 // State is used to return a handle to the current state
 func (c *FSM) State() *Store {
 	c.stateLock.RLock()
-	defer c.stateLock.RUnlock()
-	return c.state
+	state := c.state
+	c.stateLock.RUnlock()
+	return state
 }
 
 func (c *FSM) Apply(l *raft.Log) interface{} {
