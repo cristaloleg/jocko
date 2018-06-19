@@ -216,7 +216,6 @@ func (s *Segment) Replace(old *Segment) (err error) {
 // findEntry returns the nearest entry whose offset is greater than or equal to the given offset.
 func (s *Segment) findEntry(offset int64) (e *Entry, err error) {
 	s.Lock()
-	s.Unlock()
 	e = &Entry{}
 	n := int(s.Index.bytes / entryWidth)
 	idx := sort.Search(n, func(i int) bool {
