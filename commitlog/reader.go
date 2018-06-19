@@ -14,7 +14,6 @@ type Reader struct {
 
 func (r *Reader) Read(p []byte) (n int, err error) {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	segments := r.cl.Segments()
 	segment := segments[r.idx]
@@ -38,6 +37,7 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 		segment = segments[r.idx]
 		r.pos = 0
 	}
+	r.mu.Unlock()
 
 	return n, err
 }

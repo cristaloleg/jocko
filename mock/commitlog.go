@@ -137,8 +137,9 @@ func (mock *CommitLog) Append(in1 []byte) (int64, error) {
 // AppendCalled returns true if at least one call was made to Append.
 func (mock *CommitLog) AppendCalled() bool {
 	lockCommitLogAppend.RLock()
-	defer lockCommitLogAppend.RUnlock()
-	return len(mock.calls.Append) > 0
+	res := len(mock.calls.Append) > 0
+	lockCommitLogAppend.RUnlock()
+	return res
 }
 
 // AppendCalls gets all the calls that were made to Append.
@@ -172,8 +173,9 @@ func (mock *CommitLog) Delete() error {
 // DeleteCalled returns true if at least one call was made to Delete.
 func (mock *CommitLog) DeleteCalled() bool {
 	lockCommitLogDelete.RLock()
-	defer lockCommitLogDelete.RUnlock()
-	return len(mock.calls.Delete) > 0
+	res := len(mock.calls.Delete) > 0
+	lockCommitLogDelete.RUnlock()
+	return res
 }
 
 // DeleteCalls gets all the calls that were made to Delete.
@@ -210,8 +212,9 @@ func (mock *CommitLog) NewReader(offset int64, maxBytes int32) (io.Reader, error
 // NewReaderCalled returns true if at least one call was made to NewReader.
 func (mock *CommitLog) NewReaderCalled() bool {
 	lockCommitLogNewReader.RLock()
-	defer lockCommitLogNewReader.RUnlock()
-	return len(mock.calls.NewReader) > 0
+	res := len(mock.calls.NewReader) > 0
+	lockCommitLogNewReader.RUnlock()
+	return res
 }
 
 // NewReaderCalls gets all the calls that were made to NewReader.
@@ -247,8 +250,9 @@ func (mock *CommitLog) NewestOffset() int64 {
 // NewestOffsetCalled returns true if at least one call was made to NewestOffset.
 func (mock *CommitLog) NewestOffsetCalled() bool {
 	lockCommitLogNewestOffset.RLock()
-	defer lockCommitLogNewestOffset.RUnlock()
-	return len(mock.calls.NewestOffset) > 0
+	res := len(mock.calls.NewestOffset) > 0
+	lockCommitLogNewestOffset.RUnlock()
+	return res
 }
 
 // NewestOffsetCalls gets all the calls that were made to NewestOffset.
@@ -280,8 +284,9 @@ func (mock *CommitLog) OldestOffset() int64 {
 // OldestOffsetCalled returns true if at least one call was made to OldestOffset.
 func (mock *CommitLog) OldestOffsetCalled() bool {
 	lockCommitLogOldestOffset.RLock()
-	defer lockCommitLogOldestOffset.RUnlock()
-	return len(mock.calls.OldestOffset) > 0
+	res := len(mock.calls.OldestOffset) > 0
+	lockCommitLogOldestOffset.RUnlock()
+	return res
 }
 
 // OldestOffsetCalls gets all the calls that were made to OldestOffset.
@@ -316,8 +321,9 @@ func (mock *CommitLog) Truncate(in1 int64) error {
 // TruncateCalled returns true if at least one call was made to Truncate.
 func (mock *CommitLog) TruncateCalled() bool {
 	lockCommitLogTruncate.RLock()
-	defer lockCommitLogTruncate.RUnlock()
-	return len(mock.calls.Truncate) > 0
+	res := len(mock.calls.Truncate) > 0
+	lockCommitLogTruncate.RUnlock()
+	return res
 }
 
 // TruncateCalls gets all the calls that were made to Truncate.

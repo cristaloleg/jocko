@@ -31,8 +31,8 @@ ADD:
 
 func (rl *replicaLookup) Replica(topic string, partition int32) (*Replica, error) {
 	rl.lock.RLock()
-	defer rl.lock.RUnlock()
 	r, ok := rl.replica[topic][partition]
+	rl.lock.RUnlock()
 	if !ok {
 		return nil, fmt.Errorf("no replica for topic %s partition %d", topic, partition)
 	}
@@ -41,6 +41,6 @@ func (rl *replicaLookup) Replica(topic string, partition int32) (*Replica, error
 
 func (rl *replicaLookup) RemoveReplica(replica *Replica) {
 	rl.lock.Lock()
-	defer rl.lock.Unlock()
 	delete(rl.replica[replica.Partition.Topic], replica.Partition.ID)
+	rl.lock.Unlock()
 }
